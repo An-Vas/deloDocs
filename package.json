@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "mssql": "^11.0.0",
+    "msnodesql": "^0.2.1",
+    "winax": "^3.5.3"
+  }
+}
