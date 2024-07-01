@@ -4,8 +4,8 @@ const { processDocuments } = require('./bdSave/docsUpdateLogic');
 
 const conditions = [
     ['Result', 'Doc'],
-    ['Rc.DocDate', "1/01/1900" + ":" + "24/06/2024"],
-    ['Rc.DocGroup', "0.2TZ.2U1."],
+    ['Rc.DocDate', "1/01/1900" + ":" + "30/07/2024"],
+    // ['Rc.DocGroup', "0.2UB.2UD.2UF."],
 ];
 
 

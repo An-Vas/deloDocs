@@ -27,12 +27,26 @@ async function insertDoc(pool, doc) {
         request.input('signDep', mssql.NVarChar, doc.signDep);
         request.input('signPost', mssql.NVarChar, doc.signPost);
         request.input('grif', mssql.NVarChar, doc.grif);
-        request.input('texts', mssql.NVarChar, doc.texts);
-        const query = 'INSERT INTO DocsTable (name, num, date, ispp, ispd, ispPost, ispCode, sign, signDep, signPost, grif, texts) VALUES (@name, @num, @date, @ispp, @ispd, @ispPost, @ispCode, @sign, @signDep, @signPost, @grif, @texts)';
+        const query = 'INSERT INTO DocsTable (name, num, date, ispp, ispd, ispPost, ispCode, sign, signDep, signPost, grif) VALUES (@name, @num, @date, @ispp, @ispd, @ispPost, @ispCode, @sign, @signDep, @signPost, @grif)';
         await request.query(query);
         console.log('Data inserted successfully!');
     } catch (error) {
         console.error('Error inserting data:', error);
+    }
+}
+
+async function insertFile(pool, docId, name, num) {
+    try {
+        const request = pool.request();
+        request.input('docId', mssql.INT, docId);
+        request.input('num', mssql.INT, num);
+        request.input('name', mssql.NVarChar, name);
+
+        const query = 'INSERT INTO FilesTable (docId, name, num) VALUES (@docId, @name, @num)';
+        await request.query(query);
+        console.log('FileInfo inserted successfully!');
+    } catch (error) {
+        console.error('Error inserting FileInfo: ', error);
     }
 }
 
@@ -51,8 +65,7 @@ async function updateDoc(pool, doc) {
         request.input('signDep', mssql.NVarChar, doc.signDep);
         request.input('signPost', mssql.NVarChar, doc.signPost);
         request.input('grif', mssql.NVarChar, doc.grif);
-        request.input('texts', mssql.NVarChar, doc.texts);
-        const query = ('UPDATE DocsTable SET name = @name, date = @date, ispp=@ispp, ispd=@ispd, ispPost=@ispPost, ispCode=@ispCode, sign=@sign,signDep=@signDep, signPost=@signPost, grif=@grif, texts=@texts WHERE (num = @num AND name=@name AND date=@date)');
+        const query = ('UPDATE DocsTable SET name = @name, date = @date, ispp=@ispp, ispd=@ispd, ispPost=@ispPost, ispCode=@ispCode, sign=@sign,signDep=@signDep, signPost=@signPost, grif=@grif WHERE (num = @num AND date=@date)');
         await request.query(query);
         console.log('Document updated successfully.');
     } catch (err) {
@@ -64,12 +77,11 @@ async function updateDoc(pool, doc) {
 async function findDoc(pool, doc) {
     try {
         const request = pool.request();
-        request.input('name', mssql.NVarChar, doc.name);
         request.input('num', mssql.NVarChar, doc.num);
         request.input('date', mssql.NVarChar, doc.date.toISOString());
         const query = (`SELECT COUNT(*) as count
                         FROM DocsTable
-                        WHERE (num = @num AND name =@name AND date =@date)`);
+                        WHERE (num = @num AND date = @date)`);
 
         const result = await request.query(query);
         const rowCount = result.recordset[0].count;
@@ -81,6 +93,29 @@ async function findDoc(pool, doc) {
     }
 
 }
+
+
+async function getDocId(pool, doc) {
+    try {
+        const request = pool.request();
+        request.input('num', mssql.NVarChar, doc.num);
+        request.input('date', mssql.NVarChar, doc.date.toISOString());
+        const query = (`SELECT id
+                        FROM DocsTable
+                        WHERE (num = @num AND date = @date)`);
+
+        const result = await request.query(query);
+        const res = result.recordset[0].id;
+
+        return res;
+
+    } catch (err) {
+        console.error('Error finding a doc:', err);
+        return null;
+    }
+
+}
+
 
 async function connect(pool) {
     pool = await new mssql.ConnectionPool(config);
@@ -99,6 +134,49 @@ function disconnect(pool) {
 
 }
 
+async function recreateFilesTable(pool){
+     try {
+        const request = pool.request();
+        const query1 = (`DROP TABLE FilesTable`);
+        const query2 = (`CREATE TABLE FilesTable (docId INT, name  nvarchar(50), num INT)`);
+        await request.query(query1);
+        const result = await request.query(query2);
+        return result;
+
+    } catch (err) {
+        console.error('Error creating table:', err);
+        return null;
+    }
+}
+
+async function recreateDocsTable(pool){
+    try {
+        const request = pool.request();
+        const query1 = (`DROP TABLE DocsTable`);
+        const query2 = (`CREATE TABLE DocsTable 
+                                (id INT primary key IDENTITY(1,1) not null,
+                                 name nvarchar(MAX), 
+                                 num  nvarchar(50) not null,
+                                 date datetime not null,
+                                 ispp nvarchar(50),
+                                 ispd nvarchar(50),
+                                 ispPost nvarchar(50),
+                                 ispCode nvarchar(50),
+                                 sign nvarchar(50),
+                                 signDep nvarchar(50),
+                                 signPost nvarchar(50),
+                                 grif nvarchar(50),
+                         )`);
+        await request.query(query1);
+        const result = await request.query(query2);
+        return result;
+
+    } catch (err) {
+        console.error('Error creating table:', err);
+        return null;
+    }
+}
 
 
-module.exports = {connect, disconnect, findDoc, insertDoc, updateDoc};
+
+module.exports = {connect, disconnect, findDoc, insertDoc, updateDoc, insertFile, getDocId, recreateDocsTable, recreateFilesTable};

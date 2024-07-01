@@ -1,5 +1,6 @@
 const winax = require("winax");
-
+const fs = require('fs');
+const path = require('path');
 
 class DeloAPIObject{
     constructor(){
@@ -148,7 +149,7 @@ class convertRKObject {
         }
         if (!this.deloApi.FillResult())
             return 0;
-        console.log("Count " + this.ResultSet.Count)
+        console.log("Count of docs: " + this.ResultSet.Count)
         this.ResultSet = this.deloApi.ResultSet;
         return this.ResultSet.Count;
     }
@@ -288,7 +289,8 @@ function CRK_GetLastModified( item )
     item.CurrentIndex = 0;
     var lastTime = null;
     while (!item.IsEnd) {
-        if (typeof(item.CurrentItem) == "IProtocol") {
+        // console.log("IProtocol ");
+        if ((item.CurrentItem._ObjectKind) == 355) {
             var time = item.CurrentItem.When;
             if ((lastTime == null) || (time > lastTime))
                 lastTime = time;
@@ -304,7 +306,9 @@ function CRK_GetRubric( item )
     var codes = [];
     item.CurrentIndex = 0;
     while (!item.IsEnd) {
-        if (typeof (item.CurrentItem) == "IRubric") {
+        // console.log("IRubric ");
+        // if (typeof (item.CurrentItem) == "IRubric") {
+        if ((item.CurrentItem._ObjectKind) == 107) {
             var cname = item.CurrentItem.Name;
             var ccode = item.CurrentItem.DCode;
             if (cname == null) continue;
@@ -324,6 +328,8 @@ function CRK_GetLinks( item, parent )
     var links = [];
     item.CurrentIndex = 0;
     while (!item.IsEnd) {
+        console.log("ILink ");
+        console.log("_ObjectKind " + (item.CurrentItem._ObjectKind));
         if (item.CurrentItem == "ILinkRef") {
             var target = item.CurrentItem.RcLink;
             if (target.ErrCode != (-100)) {
@@ -346,9 +352,9 @@ function CRK_GetFiles( item )
     var files = [];
     item.CurrentIndex = 0;
     while (!item.IsEnd) {
-        if (typeof(item.CurrentItem) == "IFiles" ) {
+        if (item.CurrentItem._ObjectKind == 128) {
             if(item.IS_HIDDEN || item.ishidden || item.CurrentItem.Contents.Name==null || item.CurrentItem.Contents.Name.toLowerCase().indexOf("комплект")>-1 || item.CurrentItem.ishidden) continue;
-            files[files.length] = CRK_GetFileStream(item.CurrentItem);
+            files[files.length]=[CRK_GetFileStream(item.CurrentItem), item.CurrentItem.Contents.Name];
         }
         item.Next();
     }
@@ -357,26 +363,70 @@ function CRK_GetFiles( item )
 
 function CRK_GetFileStream( item )
 {
+    return "TEMP Example file content"; // Здесь должно возвращаться содержимое файла
+
     if (item.Contents == null) return null;
     var content = item.Contents;
+    // console.log(item.Contents);
     var fName = content.Name;
-    var fp = new FilePath();
-    fp.GetTempDirectory();
-    var tempDir = new File(fp);
-    content.Prepare(tempDir);
-    //content.Open();
-    var f = new File(tempDir + fName);
-    var text = new VirtualText();
-    f.copyTo(text);
-    f = null;
-    Unlink(tempDir + fName);
+    var fileName = fName;
+
+    const folderPath = path.resolve(__dirname, "TempFolder");
+
+    fs.mkdir(folderPath, { recursive: true }, (err) => {
+        if (err) throw err;
+
+        const filePath = path.resolve(folderPath, fileName);
+
+        fs.writeFile(filePath, "", (err) => {
+            if (err) throw err;
+        });
+
+
+        content.Prepare(filePath);
+        // content.Prepare(folderPath);
+        // content.Open();
+
+
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                console.error(`Error reading file: ${err}`);
+                return;
+            }
+            console.log("data " + data);
+        });
+
+
+        // fs.writeFile(filePath, content, (err) => {
+        //     if (err) throw err;
+        //
+        // });
+    });
+
+    // var fp = new FilePath();
+    // fp.GetTempDirectory();
+    // var tempDir = new File(fp);
+    // content.Prepare(tempDir);
+
+    ///////////////content.Open();
+
+    // var f = new File(tempDir + fName);
+    // var text = new VirtualText();
+    // f.copyTo(text);
+    // f = null;
+    // Unlink(tempDir + fName);
     content.UnPrepare();
+
+
+
     try{
         var edsigns = CRK_GetEDSigns(item.EDS) ;
     }catch(err) {
         edsigns = [];
     }
-    return {stream: text, name: item.Descript, fileName: fName, dateUp: item.date_upd, eds: edsigns};
+
+
+    // return {stream: text, name: item.Descript, fileName: fName, dateUp: item.date_upd, eds: edsigns};
 }
 
 function CRK_GetEDSigns( item )
