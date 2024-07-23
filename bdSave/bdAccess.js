@@ -75,6 +75,7 @@ async function updateDoc(pool, doc) {
 
 
 async function findDoc(pool, doc) {
+    if (doc == null) return;
     try {
         const request = pool.request();
         request.input('num', mssql.NVarChar, doc.num);

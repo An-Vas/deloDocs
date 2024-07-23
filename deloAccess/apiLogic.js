@@ -1,14 +1,14 @@
 const { convertRKObject, convertClassifierObject} = require('./apiAccess');
 
 
-function getDocumentsFromApi(conditions, login, pass){
+async function getDocumentsFromApi(conditions, login, pass){
     var convertRK = new convertRKObject(login, pass);
     convertRK.resetConditions();
     conditions.forEach(([key, value]) => convertRK.addCondition(key, value));
     const count = convertRK.Count();
     var resultArr = [];
     for (var i = 0; i < count; i++){
-        resultArr.push(convertRK.Get(i));
+        resultArr.push(await convertRK.Get(i));
     }
 
     convertRK.DeInit();

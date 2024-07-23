@@ -12,7 +12,7 @@ const conditions = [
 async function main() {
 
     viewGroups();
-    var docs = await getDocumentsFromApi(conditions, "TEST", "1234");
+    var docs =  await getDocumentsFromApi(conditions, "TEST", "1234");
     console.log("Got documents: ")
     console.log(docs)
     processDocuments(docs);

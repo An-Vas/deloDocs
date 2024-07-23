@@ -2,15 +2,15 @@ const winax = require("winax");
 const fs = require('fs');
 const path = require('path');
 
-class DeloAPIObject{
-    constructor(){
+class DeloAPIObject {
+    constructor() {
         this.Head = null;
         this.ResultSet = null;
         this.result = [];
         this.error = "";
     }
 
-    GetOLE()  {
+    GetOLE() {
         console.log("GetOLE: trying to get object")
         try {
             this.Head = new ActiveXObject("eapi.head");
@@ -22,9 +22,9 @@ class DeloAPIObject{
     }
 
 
-    Init ( login, pass ) {
+    Init(login, pass) {
         var res = this.GetOLE();
-        if (res != ""){
+        if (res != "") {
             console.log("Init: get OLE is not OK " + res);
             return res;
         }
@@ -35,7 +35,7 @@ class DeloAPIObject{
         } else {
             console.log("Init: opening without login and pass");
         }
-        if (this.Head.ErrCode != 0){
+        if (this.Head.ErrCode != 0) {
             console.log("Init: error  " + this.Head.ErrCode)
             return this.GenerateError(this.Head);
         } else {
@@ -44,7 +44,8 @@ class DeloAPIObject{
         }
 
     }
-    DeInit () {
+
+    DeInit() {
         if (this.Head.Active) {
             this.Head.Close();
             this.Head = null;
@@ -53,7 +54,8 @@ class DeloAPIObject{
             console.log("DeInit: Head is not Active")
         }
     }
-    InitResult = function ( criterion ) {
+
+    InitResult = function (criterion) {
         console.log("InitResult: criterion " + criterion);
         this.ResultSet = this.Head.getResultSet();
         this.ResultSet.Source = this.Head.GetCriterion(criterion);
@@ -71,56 +73,17 @@ class DeloAPIObject{
         }
         return true;
     }
-    GenerateError( ActiveXObject ) {
+
+    GenerateError(ActiveXObject) {
         return "" + " " + ActiveXObject.ErrCode + " - " + ActiveXObject.ErrText;
     }
-    GetObject ( area, isnOrDcode ) {
+
+    GetObject(area, isnOrDcode) {
         return this.Head.GetRow(area, isnOrDcode);
     }
 
 }
 
-
-// function convertTable()
-// {
-// }
-//
-//
-// function convertEDS()
-// {
-//     convertTable();
-//
-//     function convertEDSConvert ( item, counter ) {
-//         return CRK_GetEDS(item);
-//     }
-// }
-//
-//
-// function convertCertificate()
-// {
-//     convertTable();
-//
-//     this.Convert = function ( item, counter ) {
-//         var res = new Object();
-//         res.id = item.CertificateID;
-//         res.kind = item.CertificateKind;
-//         res.desc = item.Description;
-//
-//         var fName = "cert" + res.id + "_" + (new Date()).ToString("", "") + ".txt";
-//         var fp = new FilePath();
-//         fp.GetTempDirectory();
-//         var tempDir = new File(fp);
-//         item.SaveToFile(tempDir + fName);
-//         var text = new VirtualText();
-//         var f = new File(tempDir + fName);
-//         f.copyTo(text);
-//         f = null;
-//         Unlink(tempDir + fName);
-//         res.stream = text;
-//
-//         return res;
-//     }
-// }
 
 
 class convertRKObject {
@@ -133,18 +96,20 @@ class convertRKObject {
         this.ResultSet = null;
     }
 
-    resetConditions () {
+    resetConditions() {
         this.conditions = [];
     }
-    addCondition ( name_attr, value ) {
+
+    addCondition(name_attr, value) {
         this.conditions[this.conditions.length] = {name: name_attr, val: value};
     }
+
     Count () {
 
         this.deloApi.InitResult("Table");
         this.ResultSet = this.deloApi.ResultSet;
 
-        for (var i=0;i<this.conditions.length;i++) {
+        for (var i = 0; i < this.conditions.length; i++) {
             this.ResultSet.Source.SetParameters(this.conditions[i].name, this.conditions[i].val);
         }
         if (!this.deloApi.FillResult())
@@ -153,13 +118,14 @@ class convertRKObject {
         this.ResultSet = this.deloApi.ResultSet;
         return this.ResultSet.Count;
     }
-    Get ( i ) {
+
+    async Get(i) {
         if (i >= this.ResultSet.Count) return null;
         if (i < 0) return null;
-        return this.Convert(this.ResultSet.Item(i), i);
+        return await this.Convert(this.ResultSet.Item(i), i);
     }
 
-    DeInit(){
+    DeInit() {
         this.deloApi.DeInit();
     }
 
@@ -168,22 +134,19 @@ class convertRKObject {
 };
 
 
-
-
-function DeloDocument( item )
-{
+function DeloDocument(item) {
     this.name = item.RegNum;
     if (item.Contents != null) this.name = item.Contents;
     this.num = item.RegNum;
     this.date = item.DocDate;
 
-    this.Compare = function ( dd ) {
+    this.Compare = function (dd) {
         if (dd == null) return false;
         if (this.Compare1(dd)) return true;
         if (dd.parent != null) return this.Compare(dd.parent);
         return false;
     }
-    this.Compare1 = function ( dd ) {
+    this.Compare1 = function (dd) {
         if (this.name != dd.name) return false;
         if (this.num != dd.num) return false;
         if (this.date != dd.date) return false;
@@ -200,10 +163,9 @@ function DeloDocument( item )
 }
 
 
+async function CRK_Convert(item, counter, parent) {
 
-
-function CRK_Convert( item, counter, parent )
-{
+    // return new Promise((resolve, reject) => {
 
     var prm = new DeloDocument(item);
     if (prm.Compare(parent)) {
@@ -230,8 +192,7 @@ function CRK_Convert( item, counter, parent )
             if (StrpIps.Surname == null) {	// то это структурное подразделение
                 prm.ispd = StrpIps.Name;
                 prm.ispdCode = StrpIps.DCode;
-            }
-            else {							// исполнитель
+            } else {							// исполнитель
                 prm.ispp = StrpIps.Surname;
                 prm.ispPost = StrpIps.Post;
                 prm.ispCode = StrpIps.DCode;
@@ -261,7 +222,9 @@ function CRK_Convert( item, counter, parent )
     } catch (err) {
     }
 
-    prm.texts = CRK_GetFiles(item.Files);
+    var t = await CRK_GetFiles(item.Files);
+
+    prm.texts = t;
     prm.secret = true;
     prm.grif = "";
     var Secur = item.Security;
@@ -279,11 +242,33 @@ function CRK_Convert( item, counter, parent )
         prm.links = CRK_GetLinks(item.LinkRef, prm.MainInfo());
     }
 
-    return prm;
+
+    return {
+
+
+        num: prm.num,
+        name: prm.name,
+        date: prm.date,
+        noSave: prm.noSave,
+        parent: prm.parent,
+        lastModified: prm.lastModified,
+        rubrics: prm.rubrics,
+        codes: prm.codes,
+        ispp: prm.ispp,
+        ispd: prm.ispd,
+        ispPost: prm.ispPost,
+        sign: prm.sign,
+        signDep: prm.signDep,
+        signPost: prm.signPost,
+        texts: t,
+        secret: prm.secret,
+        grif: prm.grif,
+        links: prm.links,
+    }
+
 }
 
-function CRK_GetLastModified( item )
-{
+function CRK_GetLastModified(item) {
     var names = [];
     var codes = [];
     item.CurrentIndex = 0;
@@ -300,8 +285,7 @@ function CRK_GetLastModified( item )
     return lastTime;
 }
 
-function CRK_GetRubric( item )
-{
+function CRK_GetRubric(item) {
     var names = [];
     var codes = [];
     item.CurrentIndex = 0;
@@ -323,8 +307,7 @@ function CRK_GetRubric( item )
     return [names, codes];
 }
 
-function CRK_GetLinks( item, parent )
-{
+function CRK_GetLinks(item, parent) {
     var links = [];
     item.CurrentIndex = 0;
     while (!item.IsEnd) {
@@ -347,90 +330,66 @@ function CRK_GetLinks( item, parent )
     return links;
 }
 
-function CRK_GetFiles( item )
-{
+async function CRK_GetFiles(item) {
     var files = [];
     item.CurrentIndex = 0;
-    while (!item.IsEnd) {
-        if (item.CurrentItem._ObjectKind == 128) {
-            if(item.IS_HIDDEN || item.ishidden || item.CurrentItem.Contents.Name==null || item.CurrentItem.Contents.Name.toLowerCase().indexOf("комплект")>-1 || item.CurrentItem.ishidden) continue;
-            files[files.length]=[CRK_GetFileStream(item.CurrentItem), item.CurrentItem.Contents.Name];
-        }
-        item.Next();
+    if (item.IsEnd) {
+        return files;
     }
-    return files;
+    return new Promise((resolve, reject) => {
+        while (!item.IsEnd) {
+            if (item.CurrentItem._ObjectKind == 128) {
+                if (item.IS_HIDDEN || item.ishidden || item.CurrentItem.Contents.Name == null || item.CurrentItem.Contents.Name.toLowerCase().indexOf("комплект") > -1 || item.CurrentItem.ishidden) continue;
+                var fileName = item.CurrentItem.Contents.Name;
+                CRK_GetFileStream(item.CurrentItem)
+                    .then(fileContent => {
+                        files[files.length] = [fileContent, fileName];
+                        if (item.IsEnd) {
+                            resolve(files);
+                        }
+                    });
+            }
+            item.Next();
+
+        }
+    })
+
 }
 
-function CRK_GetFileStream( item )
-{
-    return "TEMP Example file content"; // Здесь должно возвращаться содержимое файла
-
+function CRK_GetFileStream(item) {
     if (item.Contents == null) return null;
     var content = item.Contents;
-    // console.log(item.Contents);
+    console.log("CRK_GetFileStream");
+    console.log(content.Name);
     var fName = content.Name;
     var fileName = fName;
 
     const folderPath = path.resolve(__dirname, "TempFolder");
+    const filePath = path.resolve(folderPath, fileName);
 
-    fs.mkdir(folderPath, { recursive: true }, (err) => {
+    fs.mkdir(folderPath, {recursive: true}, (err) => {
         if (err) throw err;
+    });
 
-        const filePath = path.resolve(folderPath, fileName);
-
-        fs.writeFile(filePath, "", (err) => {
-            if (err) throw err;
-        });
+    content.Prepare(folderPath);
 
 
-        content.Prepare(filePath);
-        // content.Prepare(folderPath);
-        // content.Open();
-
-
-        fs.readFile(filePath, 'utf8', (err, data) => {
+    return new Promise((resolve, reject) => {
+        fs.readFile(filePath,  (err, data) => {
             if (err) {
                 console.error(`Error reading file: ${err}`);
                 return;
+            } else {
+                content.UnPrepare();
+                resolve(data);
             }
-            console.log("data " + data);
+
         });
+    })
 
-
-        // fs.writeFile(filePath, content, (err) => {
-        //     if (err) throw err;
-        //
-        // });
-    });
-
-    // var fp = new FilePath();
-    // fp.GetTempDirectory();
-    // var tempDir = new File(fp);
-    // content.Prepare(tempDir);
-
-    ///////////////content.Open();
-
-    // var f = new File(tempDir + fName);
-    // var text = new VirtualText();
-    // f.copyTo(text);
-    // f = null;
-    // Unlink(tempDir + fName);
-    content.UnPrepare();
-
-
-
-    try{
-        var edsigns = CRK_GetEDSigns(item.EDS) ;
-    }catch(err) {
-        edsigns = [];
-    }
-
-
-    // return {stream: text, name: item.Descript, fileName: fName, dateUp: item.date_upd, eds: edsigns};
 }
 
-function CRK_GetEDSigns( item )
-{
+function CRK_GetEDSigns(item) {
     var edSigns = [];
     item.CurrentIndex = 0;
     while (!item.IsEnd) {
@@ -442,8 +401,7 @@ function CRK_GetEDSigns( item )
     return edSigns;
 }
 
-function CRK_GetEDS( item )
-{
+function CRK_GetEDS(item) {
     var res = new Object();
     res.isn = item.Isn;
     res.info = item.SignText;
@@ -481,8 +439,7 @@ function CRK_GetEDS( item )
     return res;
 }
 
-function CRK_GetCertificate( item )
-{
+function CRK_GetCertificate(item) {
     var res = new Object();
     res.id = item.CertificateID;
     res.kind = item.CertificateKind;
@@ -508,8 +465,7 @@ function CRK_GetCertificate( item )
  ** DeloClassifier
  ** элемент классификатора
  *****************************************/
-function DeloClassifier( item, parentCode )
-{
+function DeloClassifier(item, parentCode) {
     this.name = item.Name;
     this.fullName = this.name;
     this.source = "ДелоТСФ";
@@ -520,10 +476,8 @@ function DeloClassifier( item, parentCode )
     this.post = "";
     this.person = 0;
 
-    if (typeof (item) == "IDepartment")
-    {
-        if (item.Surname != null)
-        {
+    if (typeof (item) == "IDepartment") {
+        if (item.Surname != null) {
             this.name = item.Surname;
             if (item.Post != null) this.post = item.Post;
             this.person = 1;
@@ -532,7 +486,7 @@ function DeloClassifier( item, parentCode )
 }
 
 
-class convertClassifierObject{
+class convertClassifierObject {
     constructor(login, pass) {
         this.deloApi = new DeloAPIObject();
         this.deloApi.Init(login, pass);
@@ -540,21 +494,21 @@ class convertClassifierObject{
         this.arrElements = new Array();
     }
 
-    Run = function ( voc ) {
+    Run = function (voc) {
         this.deloApi.InitResult("Vocabulary");
         this.ResultSet = this.deloApi.ResultSet;
         this.ResultSet.Source.Vocabulary = voc;
         if (!this.deloApi.FillResult())
             return;
         this.ResultSet.Source.Vocabulary = voc;
-        for (var i=0;i<this.ResultSet.Count;i++)
+        for (var i = 0; i < this.ResultSet.Count; i++)
             this.Convert(this.ResultSet.Item(i), i);
     }
-    Convert = function ( item, counter ) {
+    Convert = function (item, counter) {
         var parentCode = "";
         if (item.Layer != 1) parentCode = item.Parent.DCode;
         if (parentCode != "") {
-            for (var i=0;i<this.arrElements.length;i++) {
+            for (var i = 0; i < this.arrElements.length; i++) {
                 if (this.arrElements[i].code == parentCode)
                     this.arrElements[i].isParent = true;
             }
@@ -563,29 +517,29 @@ class convertClassifierObject{
         if (item.Layer > this.maxLevel) this.maxLevel = item.Layer;
     }
 
-    GetElementsProperties ( prop ) {
+    GetElementsProperties(prop) {
         var res = [];
-        for (var i=0;i<this.arrElements.length;i++) {
+        for (var i = 0; i < this.arrElements.length; i++) {
             var elem = this.arrElements[i];
             res[i] = elem[prop];
         }
         return res;
     }
-    GetElementsCodes () {
+
+    GetElementsCodes() {
         return this.GetElementsProperties("code");
     }
-    GetElementsNames () {
+
+    GetElementsNames() {
         return this.GetElementsProperties("name");
     }
 
-    DeInit (){
+    DeInit() {
         this.deloApi.DeInit();
     }
 
 
 }
-
-
 
 
 module.exports = {
